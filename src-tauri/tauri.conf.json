@@ -35,21 +35,14 @@
       "resources/ffmpeg/**/*"
     ],
     "macOS": {
-      "target": ["x86_64-apple-darwin", "aarch64-apple-darwin"],
-      "exceptionDomain": "",
+      "exceptionDomain": null,
       "signingIdentity": null,
       "entitlements": null
     },
     "windows": {
       "webviewFixedRuntimePath": null,
-      "webviewInstallMode": {
-        "type": "embed"
-      },
-      "wix": {
-        "language": {
-          "0x0409": "en-US"
-        }
-      }
+      "webviewInstallMode": null,
+      "wix": null
     }
   }
 }
