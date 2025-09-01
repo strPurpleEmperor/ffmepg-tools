@@ -51,19 +51,20 @@ jobs:
           $downloadPath = "resources/ffmpeg.zip"
           $installDir = "resources/ffmpeg"
 
-          # 创建目录
+          # 确保目标目录存在
           mkdir -p $installDir
 
           # 下载并解压
           Invoke-WebRequest -Uri $ffmpegUrl -OutFile $downloadPath
           Expand-Archive -Path $downloadPath -DestinationPath $installDir
 
-          # 获取解压后的文件夹名
-          $extractedFolder = Get-ChildItem -Path $installDir | Where-Object { $_.PSIsContainer }
+          # 获取解压后的文件夹名（可能包含版本号）
+          $extractedFolder = Get-ChildItem -Path $installDir | Where-Object { $_.PSIsContainer } | Select-Object -First 1
 
-          # 将 ffmpeg.exe 移动到 resources/ffmpeg 根目录
+          # 移动 ffmpeg.exe 到 resources/ffmpeg 根目录
           Move-Item "${extractedFolder.FullName}\bin\ffmpeg.exe" "${installDir}\ffmpeg.exe"
 
+          echo "FFmpeg for Windows has been moved to resources/ffmpeg/ffmpeg.exe"
       - name: Download FFmpeg (macOS)
         if: matrix.platform == 'macos-latest'
         shell: bash
@@ -72,15 +73,17 @@ jobs:
           download_path="resources/ffmpeg.zip"
           install_dir="resources/ffmpeg"
 
+          # 确保目标目录存在
           mkdir -p $install_dir
+
+          # 下载并解压 FFmpeg
           curl -L $FFMPEG_URL -o $download_path
           unzip $download_path -d $install_dir
 
-          # 找到解压后的文件夹名
-          extracted_folder=$(ls -d $install_dir/*/ | head -1)
+          # 这里不需要额外的 mv 命令，因为 unzip 已经将文件放到了正确的位置。
+          # 之前失败的 ls 命令也应移除。
 
-          # 移动 ffmpeg 可执行文件到 resources/ffmpeg 目录
-          mv "${extracted_folder}/ffmpeg" "${install_dir}/ffmpeg"
+          echo "FFmpeg 成功解压到 $install_dir。"
 
       - name: Download FFmpeg (Linux)
         if: matrix.platform == 'ubuntu-latest'
@@ -92,11 +95,14 @@ jobs:
 
           mkdir -p $install_dir
           curl -L $FFMPEG_URL -o $download_path
+
+          # 使用 --strip-components=1 解压，直接将内容放在 install_dir
           tar -xf $download_path -C $install_dir --strip-components=1
 
-          # 移动 ffmpeg 可执行文件到 resources/ffmpeg 目录
+          # 移动 ffmpeg 可执行文件到 resources/ffmpeg 根目录
           mv "${install_dir}/ffmpeg" "${install_dir}/ffmpeg"
 
+          echo "FFmpeg for Linux has been moved to resources/ffmpeg/ffmpeg"
       # 构建 Tauri 应用
       - name: install frontend dependencies
         run: pnpm install # change this to npm, pnpm or bun depending on which one you use.
