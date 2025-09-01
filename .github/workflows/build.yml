@@ -72,7 +72,7 @@ jobs:
 
       # 构建 Tauri 应用
       - name: Build Tauri app
-        uses: tauri-apps/tauri-action@v0
+        uses: tauri-apps/tauri-action@main
         with:
           release: true
           # 你可以在这里传入其他参数，比如签名证书等
