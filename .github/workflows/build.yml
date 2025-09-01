@@ -17,6 +17,9 @@ jobs:
 
     runs-on: ${{ matrix.platform }}
 
+    permissions:
+      contents: write  # 添加此行，授予写入权限
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
