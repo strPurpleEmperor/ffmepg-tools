@@ -51,11 +51,18 @@ jobs:
           $downloadPath = "resources/ffmpeg.zip"
           $installDir = "resources/ffmpeg"
 
+          # 创建目录
           mkdir -p $installDir
+
+          # 下载并解压
           Invoke-WebRequest -Uri $ffmpegUrl -OutFile $downloadPath
           Expand-Archive -Path $downloadPath -DestinationPath $installDir
-          # 将 ffmpeg.exe 移动到 resources/ffmpeg 根目录，以符合 Tauri 打包配置
-          mv "${installDir}/ffmpeg-master-latest-win64-gpl/bin/ffmpeg.exe" "${installDir}/ffmpeg.exe"
+
+          # 获取解压后的文件夹名
+          $extractedFolder = Get-ChildItem -Path $installDir | Where-Object { $_.PSIsContainer }
+
+          # 将 ffmpeg.exe 移动到 resources/ffmpeg 根目录
+          Move-Item "${extractedFolder.FullName}\bin\ffmpeg.exe" "${installDir}\ffmpeg.exe"
 
       - name: Download FFmpeg (macOS)
         if: matrix.platform == 'macos-latest'
@@ -68,8 +75,12 @@ jobs:
           mkdir -p $install_dir
           curl -L $FFMPEG_URL -o $download_path
           unzip $download_path -d $install_dir
-          # 将 ffmpeg 可执行文件移动到 resources/ffmpeg 根目录
-          mv "${install_dir}/ffmpeg" "${install_dir}/ffmpeg-mac"
+
+          # 找到解压后的文件夹名
+          extracted_folder=$(ls -d $install_dir/*/ | head -1)
+
+          # 移动 ffmpeg 可执行文件到 resources/ffmpeg 目录
+          mv "${extracted_folder}/ffmpeg" "${install_dir}/ffmpeg"
 
       - name: Download FFmpeg (Linux)
         if: matrix.platform == 'ubuntu-latest'
@@ -82,8 +93,9 @@ jobs:
           mkdir -p $install_dir
           curl -L $FFMPEG_URL -o $download_path
           tar -xf $download_path -C $install_dir --strip-components=1
-          # 将 ffmpeg 可执行文件移动到 resources/ffmpeg 根目录
-          mv "${install_dir}/ffmpeg" "${install_dir}/ffmpeg-linux"
+
+          # 移动 ffmpeg 可执行文件到 resources/ffmpeg 目录
+          mv "${install_dir}/ffmpeg" "${install_dir}/ffmpeg"
 
       # 构建 Tauri 应用
       - name: install frontend dependencies
