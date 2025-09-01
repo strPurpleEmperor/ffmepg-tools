@@ -33,16 +33,6 @@
     ],
     "resources": [
       "resources/ffmpeg/**/*"
-    ],
-    "macOS": {
-      "exceptionDomain": null,
-      "signingIdentity": null,
-      "entitlements": null
-    },
-    "windows": {
-      "webviewFixedRuntimePath": null,
-      "webviewInstallMode": null,
-      "wix": null
-    }
+    ]
   }
 }
