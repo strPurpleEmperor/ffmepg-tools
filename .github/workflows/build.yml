@@ -38,6 +38,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.0-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+          sudo apt-get install -y libgtk-3-dev libgdk-pixbuf2.0-dev
         # webkitgtk 4.0 is for Tauri v1 - webkitgtk 4.1 is for Tauri v2.
         # You can remove the one that doesn't apply to your app to speed up the workflow a bit.
 
@@ -51,20 +52,25 @@ jobs:
           $downloadPath = "resources/ffmpeg.zip"
           $installDir = "resources/ffmpeg"
 
-          # 确保目标目录存在
+          # 创建目标目录
           mkdir -p $installDir
 
           # 下载并解压
           Invoke-WebRequest -Uri $ffmpegUrl -OutFile $downloadPath
           Expand-Archive -Path $downloadPath -DestinationPath $installDir
 
-          # 获取解压后的文件夹名（可能包含版本号）
+          # 动态获取解压后的文件夹名
           $extractedFolder = Get-ChildItem -Path $installDir | Where-Object { $_.PSIsContainer } | Select-Object -First 1
+
+          # 打印变量以供调试
+          Write-Host "Extracted folder full name is: $($extractedFolder.FullName)"
 
           # 移动 ffmpeg.exe 到 resources/ffmpeg 根目录
           Move-Item "${extractedFolder.FullName}\bin\ffmpeg.exe" "${installDir}\ffmpeg.exe"
 
-          echo "FFmpeg for Windows has been moved to resources/ffmpeg/ffmpeg.exe"
+          Write-Host "FFmpeg for Windows has been moved to resources/ffmpeg/ffmpeg.exe"   
+          
+
       - name: Download FFmpeg (macOS)
         if: matrix.platform == 'macos-latest'
         shell: bash
@@ -76,9 +82,8 @@ jobs:
           mkdir -p $install_dir
           curl -L $FFMPEG_URL -o $download_path
           unzip $download_path -d $install_dir
-
-          # 移除多余的 mv 命令
-          echo "FFmpeg for macOS is already in the correct location."
+          ls ./
+          ls ./resources
 
       - name: Download FFmpeg (Linux)
         if: matrix.platform == 'ubuntu-latest'
