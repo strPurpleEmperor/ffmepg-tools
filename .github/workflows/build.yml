@@ -13,13 +13,24 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [macos-latest]
-        target: [ x86_64-apple-darwin, aarch64-apple-darwin ]
+        platform: [macos-latest, windows-latest]
+        target: [x86_64-apple-darwin, aarch64-apple-darwin, x86_64-pc-windows-msvc]
+        exclude:
+          - platform: macos-latest
+            target: x86_64-pc-windows-msvc
+          - platform: macos-latest
+            target: aarch64-pc-windows-msvc
+          - platform: macos-latest
+            target: aarch64-apple-darwin
+          - platform: windows-latest
+            target: x86_64-apple-darwin
+          - platform: windows-latest
+            target: aarch64-apple-darwin
 
     runs-on: ${{ matrix.platform }}
 
     permissions:
-      contents: write  # 添加此行，授予写入权限
+      contents: write
 
     steps:
       - name: Checkout repository
@@ -36,7 +47,7 @@ jobs:
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+          targets: ${{ matrix.target }}
 
       - name: Install frontend dependencies
         run: pnpm install
@@ -53,6 +64,18 @@ jobs:
           curl -L $FFMPEG_URL -o $download_path
           unzip $download_path -d $install_dir
 
+      - name: Download FFmpeg (Windows)
+        if: matrix.platform == 'windows-latest'
+        shell: bash
+        run: |
+          FFMPEG_URL="https://www.gyan.dev/ffmpeg/builds/ffmpeg-git-full.7z"
+          download_path="src-tauri/resources/ffmpeg/ffmpeg.7z"
+          install_dir="src-tauri/resources/ffmpeg"
+          
+          mkdir -p $install_dir
+          curl -L $FFMPEG_URL -o $download_path
+          7z x $download_path -o$install_dir
+
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@dev
         env:
@@ -63,5 +86,4 @@ jobs:
           releaseBody: "See the assets to download this version and install."
           releaseDraft: false
           prerelease: false
-          #args: ${{ matrix.args }}
           args: "--target ${{ matrix.target }}"
