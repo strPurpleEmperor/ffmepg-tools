@@ -18,71 +18,56 @@ jobs:
     runs-on: ${{ matrix.platform }}
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: setup node
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: lts/*
 
-      - name: install pnpm
+      - name: Install pnpm
         run: npm install -g pnpm
 
-      - name: install Rust stable
+      - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          # Those targets are only used on macos runners so it's in an `if` to slightly speed up windows and linux builds.
           targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
-      - name: install dependencies (ubuntu only)
-        if: matrix.platform == 'ubuntu-22.04'
+      - name: Install dependencies (ubuntu only)
+        if: matrix.platform == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.0-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libglib2.0-dev
 
+      - name: Install frontend dependencies
+        run: pnpm install
 
-      # 在不同平台下载 FFmpeg
       - name: Download FFmpeg (Windows)
         if: matrix.platform == 'windows-latest'
         shell: pwsh
         run: |
           $ffmpegUrl = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
-          $installDir = "resources/ffmpeg"
-
-          # 确保目标目录存在
-          mkdir -p $installDir
-
-          # 获取当前工作目录的完整路径
-          $currentDir = Get-Location
-
-          # 下载并解压
-          Invoke-WebRequest -Uri $ffmpegUrl -OutFile "$currentDir\resources\ffmpeg.zip"
-          Expand-Archive -Path "$currentDir\resources\ffmpeg.zip" -DestinationPath "$currentDir\$installDir"
-
-          # 获取解压后的文件夹名
-          $extractedFolder = Get-ChildItem -Path "$currentDir\$installDir" | Where-Object { $_.PSIsContainer } | Select-Object -First 1
-
-          # 移动 ffmpeg.exe
-          Move-Item -Path "$($extractedFolder.FullName)\bin\ffmpeg.exe" -Destination "$($currentDir)\$installDir\ffmpeg.exe"
-
-          Write-Host "FFmpeg for Windows has been moved to $currentDir\$installDir\ffmpeg.exe"
+          $downloadDir = "resources/ffmpeg"
+          mkdir -p $downloadDir
           
+          Invoke-WebRequest -Uri $ffmpegUrl -OutFile "$downloadDir/ffmpeg.zip"
+          Expand-Archive -Path "$downloadDir/ffmpeg.zip" -DestinationPath "$downloadDir"
+          
+          $extractedFolder = Get-ChildItem -Path "$downloadDir" | Where-Object { $_.PSIsContainer }
+          Move-Item "$($extractedFolder.FullName)\bin\ffmpeg.exe" "$downloadDir\ffmpeg.exe"
 
       - name: Download FFmpeg (macOS)
         if: matrix.platform == 'macos-latest'
         shell: bash
         run: |
           FFMPEG_URL="https://evermeet.cx/ffmpeg/getrelease/ffmpeg/zip"
-          download_path="resources/ffmpeg.zip"
+          download_path="resources/ffmpeg/ffmpeg.zip"
           install_dir="resources/ffmpeg"
-
+          
           mkdir -p $install_dir
           curl -L $FFMPEG_URL -o $download_path
           unzip $download_path -d $install_dir
-          echo "---- ls ./resources/ffmpeg"
-          ls ./resources/ffmpeg
-          echo "----"
-          
 
       - name: Download FFmpeg (Linux)
         if: matrix.platform == 'ubuntu-latest'
@@ -91,22 +76,17 @@ jobs:
           FFMPEG_URL="https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz"
           download_path="resources/ffmpeg.tar.xz"
           install_dir="resources/ffmpeg"
-
+          
           mkdir -p $install_dir
           curl -L $FFMPEG_URL -o $download_path
           tar -xf $download_path -C $install_dir --strip-components=1
 
-          # 移除多余的 mv 命令
-          echo "FFmpeg for Linux is already in the correct location." # 构建 Tauri 应用
-
-      - name: install frontend dependencies
-        run: pnpm install # change this to npm, pnpm or bun depending on which one you use.
-
-      - uses: tauri-apps/tauri-action@v0
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@dev
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: app-v__VERSION__ # the action automatically replaces \_\_VERSION\_\_ with the app version.
+          tagName: app-v__VERSION__
           releaseName: "App v__VERSION__"
           releaseBody: "See the assets to download this version and install."
           releaseDraft: true
